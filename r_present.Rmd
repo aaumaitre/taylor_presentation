@@ -1,0 +1,350 @@
+---
+title: "Oportunidades y limitaciones del análisis de texto con R:"
+subtitle: "la discografía de Taylor Swift"
+author: "Ariane Aumaitre"
+institute: "Instituto Universitario Europeo"
+date: "14/11/2019"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: xaringan-themer.css
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r xaringan-themer, include = FALSE}
+library(xaringanthemer)
+library(emo)
+duo_accent(
+  primary_color = "#F885F8",
+  secondary_color = "#060006",
+  title_slide_text_color = "#FFFFFF",
+  text_bold_color = "#F885F8",
+  header_font_google = google_font("Josefin Sans"),
+  text_font_google   = google_font("Montserrat", "300", "300i"),
+  code_font_google   = google_font("Droid Mono"),
+  text_font_size = "25px",
+  code_font_size = "0.5em",
+  header_h1_font_size = "40px",
+  extra_css = list(
+    ".title-slide h1" = list(
+      "font-size" = "52px",
+      "line-height" = "1.1em"),
+    ".title-slide h2" = list(
+    "margin-top" = "-10px",
+    "margin-bottom" = "40px"),
+    ".title-slide h3" = list(
+    "margin-top" = "40px.",
+    "line-height" = "0.3em"),
+    ".remark-slide-content" = list(
+      "line-height" = "1.1em"),
+    ".hljs-github .hljs" = list(
+    "background" ="#FCE8FC" )
+    )
+  )
+```
+```{css, echo=FALSE}
+/* custom.css */
+.left-code {
+  color: #777;
+  width: 60%;
+  height: 92%;
+  float: left;
+}
+.right-plot {
+  width: 38%;
+  float: right;
+  padding-left: 1%;
+}
+}
+```
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+
+
+
+# ¿Por qué análisis de texto con R?
+
+
+.center[`r emo::ji("idea")`]
+
+
+* Muchos datos hoy en día pueden ser extraídos de fuentes de texto
+
+* Por ejemplo, en ciencias sociales: 
+  + *Debates parlamentarios, programas electorales, noticias de periódico, tweets...*
+  
+* **Automatizando el proceso**, el volumen de información que podemos analizar es mucho mayor
++ R hace este proceso muy sencillo, especialmente si aplicamos herramientas de **tidy data**.
+
+---
+background-image: url(https://www.billboard.com/files/styles/article_main_image/public/media/taylor-swift-the-1989-world-tour-live-in-manchester-2015-billboard-650.jpg)
+background-size: 400px
+background-position: 110% 90%
+class: inverse
+
+# ¿Por qué Taylor Swift?
+
+</br>
+
+* "Artist of the decade" según los AMAs
+
+* Tiene 10 Grammys
+
+* **Más de 50 millones de discos** vendidos
+
+* Su nuevo disco, **Lover**, es increíble `r emo::ji("heart")`
+</br>
+</br>
+
+
+
+ ... y porque conozco _muy bien_ sus canciones.
+
+---
+
+# Temas de esta presentación
+
+* Idea general de cómo funciona **tidytext**
+
+* Ejemplos de **preguntas** que podemos contestar mediante análisis de texto
+* ¿Cuáles son las **limitaciones** de esta técnica? 
+
+.center[![](https://media.giphy.com/media/l0K4c8bZHJzDCmg6Y/giphy.gif)]
+
+<small>**Slides, código y tutorial**: [https://github.com/aaumaitre/taylor_swift](https://github.com/aaumaitre/taylor_swift)</small>
+
+
+---
+
+# Tidytext
+
+* Un paquete que permite aplicar principios de **"tidy data"** a un corpus de texto
+
+* Una observación por fila, una variable por columna
+
+* En el caso del **texto** -> cada observación es la unidad que queramos analizar (palabras? frases?)
+
+* Organizar nuestro texto así nos permite utilizar herramientas de **tidyverse** para el análisis
+
+![](https://i.ibb.co/kyMCbQ7/r-first-then.png)
+---
+
+# Preparando los datos
+```{r, include=FALSE}
+load("taytay.Rdata")
+library(tidyverse)
+```
+
+Esta es la base de datos descargada de Genius:
+
+```{r}
+head(tay)
+```
+
+---
+# Preparando los datos (II)
+
+<small>Con la función `unnest_tokens()` reducimos la columna `lyric` a nuestra unidad de estudio: las palabras.</small>
+
+```{r, warning = FALSE}
+library(tidytext) #Tidytext package
+#Tokenizing our data:
+tay_tok <- tay%>%
+  #word is the new column, lyric the column to retrieve the information from
+  unnest_tokens(word, lyric)
+head(tay_tok)
+```
+
+---
+# Análisis exploratorio
+
+
+<small>Las palabras más repetidas no nos dan mucha información... `r emo::ji("sad")` </small>
+.left-code[
+```{r}
+tay_tok %>%
+  count(word, sort = TRUE) %>%
+  head()
+```
+]
+
+.right-plot[.center[
+</br></br></br></br></br>
+![](https://media.tenor.com/images/15cc765f8d2612bec5f7504562f0ed83/tenor.gif)]]
+---
+# Análisis exploratorio (II)
+<small>
+* Una forma de resolver este problema es eliminar las llamadas `palabras vacías`, que no aportan significado
+
+* ¿Cómo? Usando `anti_join()` y el diccionario `stop_words` </small>
+.left-code[
+```{r, message = FALSE, warning=FALSE}
+tidy_taylor <- tay_tok %>%
+  anti_join(stop_words)
+tidy_taylor %>% 
+  count(word, sort = TRUE) %>% head()
+```
+]
+.right-plot[.center[</br></br></br></br>
+![](https://media3.giphy.com/media/njP6or65MJ8Na/source.gif)]]
+
+---
+class: center, middle
+# ¡Ahora sí!
+
+
+![](https://camo.githubusercontent.com/bcdbee6b9671023718bd682f0396cfe9dcf43dea/68747470733a2f2f692e6962622e636f2f473552706d79442f696d6167652e706e67)
+
+---
+# Aplicaciones: análisis de sentimiento
+
+* El **análisis de sentimiento** nos permite aproximar las connotaciones subjetivas de los textos analizados
+
+* ¿Predominan emociones positivas o negativas?
+
+* Se lleva a cabo mediante **diccionarios** que aplicamos a nuestro texto 
+
+* **Tidytext** contiene tres diccionarios: _AFINN_, _bing_ y _nrc_. Es importante elegir un diccionario que _tenga sentido_ para el texto con el que estamos trabajando.
+
+* Funciones que utilizaremos: `get_sentiments()` e `inner_join()`
+
+---
+
+# La función get_sentiments()
+
+````{r, message = FALSE}
+tidy_taylor%>%
+  inner_join(get_sentiments("bing"))
+```
+
+
+---
+
+# La función get_sentiments()
+
+```{r, message = FALSE}
+tidy_taylor%>%
+  inner_join(get_sentiments("bing"))%>% 
+  count(album, track_title, sentiment)
+
+```
+---
+
+# La función get_sentiments()
+
+```{r, message = FALSE}
+tidy_taylor%>%
+  inner_join(get_sentiments("bing"))%>% 
+  count(album, track_title, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)%>%
+  arrange(desc(sentiment))
+
+```
+---
+class: middle, center
+
+![](https://camo.githubusercontent.com/b19f249906b325580745b5f95848c8209d6aef88/68747470733a2f2f692e6962622e636f2f534266387653712f696d6167652e706e67)
+
+---
+# Cuidado con...
+</br></br></br>
+
+.left-code[
+* Ironía
+
+* Dobles sentidos
+
+* La elección del diccionario
+
+* Es importante comparar resultados
+]
+.right-plot[
+![](https://media.giphy.com/media/WQCL5dzFsMzlrlYIew/giphy.gif)
+]
+
+
+---
+
+# Comparando diccionarios 
+.pull-left[
+````{r, message = FALSE}
+tidy_taylor%>%
+  inner_join(get_sentiments("bing"))%>% 
+  filter(sentiment == "positive")%>%
+  count(album, track_title, sentiment, sort = TRUE)%>%
+    select(track_title, n)
+
+
+```
+]
+.pull-right[
+
+```{r, message = FALSE}
+tidy_taylor%>%
+  inner_join(get_sentiments("nrc"))%>% 
+  filter(sentiment == "positive")%>%
+  count(album, track_title, sentiment, sort = TRUE)%>%
+  select(track_title, n)
+```
+]
+---
+# Comprender los resultados (I)
+
+```{r, message = FALSE}
+tidy_taylor%>%
+  inner_join(get_sentiments("bing"))%>%
+  filter(sentiment == "positive")%>%
+  count(sentiment, track_title, word, sort = TRUE)%>%
+  select(track_title, word, n)
+```
+---
+# Comprender los resultados (II)
+
+```{r, message = FALSE}
+tidy_taylor%>%
+  inner_join(get_sentiments("bing"))%>%
+  filter(sentiment == "negative")%>%
+  count(sentiment, track_title, word, sort = TRUE)
+``` 
+---
+
+# Otras aplicaciones 💡
+
+</br></br></br>
+
+.left-code[
+
+* Identificar tendencias temporales
+
+* Buscar similitudes o diferencias entre textos
+
+* Topic modelling
+
+* network analysis
+
+]
+
+.right-plot[
+![](https://media1.giphy.com/media/W6itv78YBylif0laJ7/source.gif)
+]
+
+---
+
+# Ejemplo: relación entre discos
+
+![](https://camo.githubusercontent.com/cdf20d40b9a72eec49203734cbc0441ddc994961/68747470733a2f2f692e6962622e636f2f7448346b3938732f696d6167652e706e67)
+
+---
+
+# Ejemplo 2: relación entre canciones
+
+![](https://camo.githubusercontent.com/9d9c2a4a9dba52ad98244143c568af137d6880e4/68747470733a2f2f692e6962622e636f2f31544b707347742f696d6167652e706e67)
+---
+background-image: url(https://media.npr.org/assets/img/2014/10/30/taylor-swift-sunglasses_wide-4fba842796dcffeb9f5ba5a1498c20e689e05ad9-s800-c85.jpg)
